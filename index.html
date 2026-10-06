@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Phase 2 Data Detective — Spot the Lies</title>
+<meta name="description" content="Mathematics and Data Science · Session 15 · CRISP-DM Phase 2: find the nine data-quality problems hidden in twelve rows of a class survey.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --ground:#F3F6F9; --paper:#FFFFFF; --ink:#1B2A41; --ink-2:#4A5A70; --line:#D5DDE6; --grid:#E8EDF2;
+  --teal:#1C7293; --teal-soft:#DCEEF4; --amber:#F0A202; --amber-soft:#FDF1D6; --amber-ink:#7A5200;
+  --good:#2E7D5B; --good-soft:#DDF1E7; --bad:#B4432F; --bad-soft:#F8E1DC;
+  --shadow:0 1px 2px rgba(27,42,65,.06),0 6px 20px rgba(27,42,65,.06);
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root{
+  color-scheme: dark;
+  --ground:#0F1826; --paper:#172336; --ink:#E6ECF4; --ink-2:#A3B1C4; --line:#2B3A50; --grid:#223047;
+  --teal:#5DB4D3; --teal-soft:#16384A; --amber:#F6B73C; --amber-soft:#3A2E12; --amber-ink:#F6CF7E;
+  --good:#6CCB9D; --good-soft:#163A2B; --bad:#EE8B77; --bad-soft:#3F211B;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25);
+}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--ground);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5;
+  padding-inline:16px;padding-block:env(safe-area-inset-top,0px) calc(48px + env(safe-area-inset-bottom,0px))}
+img{max-width:100%}
+[hidden]{display:none!important}
+.wrap{max-width:1040px;margin:0 auto}
+header.top{padding-block:18px 12px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;flex-direction:column}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--teal)}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(26px,4vw,36px);line-height:1.05;margin:2px 0 0;text-wrap:balance}
+.score{display:flex;align-items:baseline;gap:8px;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:6px 16px;box-shadow:var(--shadow)}
+.score b{font-family:var(--display);font-size:26px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.score span{font-size:13px;color:var(--ink-2)}
+button:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+section.round{padding-top:22px}
+.intro{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:end;margin-bottom:14px}
+@media (max-width:760px){.intro{grid-template-columns:1fr}}
+h2{font-family:var(--display);font-weight:800;font-size:clamp(22px,3vw,28px);margin:0;line-height:1.15;text-wrap:balance}
+.lede{margin:6px 0 0;color:var(--ink-2);max-width:64ch}
+.meter{font-family:var(--mono);font-size:14px;color:var(--ink-2);white-space:nowrap}
+.meter b{color:var(--ink);font-size:20px}
+.sheet{background:var(--paper);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:760px;font-family:var(--mono);font-size:14px;font-variant-numeric:tabular-nums}
+thead th{background:var(--grid);color:var(--ink-2);font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);font-size:12.5px}
+thead th.rn,td.rn{width:38px;text-align:right;color:var(--ink-2);background:var(--grid)}
+td{padding:0;border-bottom:1px solid var(--grid);border-right:1px solid var(--grid)}
+td button.cell{all:unset;box-sizing:border-box;display:block;width:100%;min-height:38px;padding:9px 10px;cursor:pointer;white-space:pre;color:var(--ink)}
+td button.cell:hover{background:var(--teal-soft)}
+td button.cell.num{text-align:right}
+td button.cell.flag{background:var(--amber-soft);box-shadow:inset 0 0 0 2px var(--amber);color:var(--amber-ink);font-weight:600}
+td button.cell.solved{background:var(--good-soft);box-shadow:inset 0 0 0 2px var(--good);color:var(--ink);font-weight:600}
+td button.cell.miss{background:var(--bad-soft)}
+td.rn{padding:9px 8px;font-size:12px}
+.panel{margin-top:14px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-height:92px}
+.panel h3{margin:0 0 4px;font-size:16px}
+.panel p{margin:0;color:var(--ink-2)}
+.decide{font-size:13.5px;color:var(--ink-2);margin:8px 0 0;line-height:1.45}
+.decide b{color:var(--ink)}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:10px;margin-top:12px}
+.opt{display:flex;flex-direction:column;gap:3px;text-align:left;font:400 13px var(--body);color:var(--ink-2);
+  background:var(--ground);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer}
+.opt b{font:700 15px var(--body);color:var(--ink)}
+.opt:hover{border-color:var(--teal)}
+.opt.right{background:var(--good-soft);border-color:var(--good)}
+.opt.wrong{background:var(--bad-soft);border-color:var(--bad)}
+.why{margin-top:12px;font-size:15px}
+.decider{margin-top:16px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+.decider b{font-size:15px}
+.decider ol{margin:6px 0 0;padding-left:20px;color:var(--ink-2);font-size:14px}
+.decider li{margin-bottom:3px}
+.chip{font:600 15px var(--body);border:1px solid var(--line);background:var(--ground);color:var(--ink);border-radius:999px;padding:7px 14px;cursor:pointer}
+.chip:hover{border-color:var(--teal);color:var(--teal)}
+.chip.right{background:var(--good-soft);border-color:var(--good);color:var(--good)}
+.chip.wrong{background:var(--bad-soft);border-color:var(--bad);color:var(--bad)}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:16px}
+.legend div{font-size:14px;color:var(--ink-2)}
+.legend b{display:block;color:var(--ink);font-size:14.5px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:26px;padding-top:16px;border-top:1px solid var(--line)}
+.badge{font:600 13px var(--mono);padding:5px 10px;border-radius:6px;border:1px solid var(--line);color:var(--ink-2)}
+.badge.on{border-color:var(--amber);background:var(--amber-soft);color:var(--amber-ink)}
+.restart{margin-left:auto;font:600 14px var(--body);background:var(--ink);color:var(--ground);border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--ground);padding:9px 16px;border-radius:999px;font-weight:600;font-size:15px;opacity:0;transition:opacity .25s;pointer-events:none}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+.foot{margin-top:20px;font-size:14px;color:var(--ink-2);max-width:70ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div class="bar">
+    <div class="brand">
+      <span class="eyebrow">Mathematics &amp; Data Science · Session 15 · CRISP-DM Phase 2</span>
+      <h1>Data Detective — Spot the Lies</h1>
+    </div>
+    <div class="score" aria-live="polite"><b id="score">0</b><span>points</span></div>
+  </div>
+</header>
+
+<section class="round" id="r1">
+  <div class="intro">
+    <div>
+      <h2>Twelve rows from a class survey. Nine things are wrong.</h2>
+      <p class="lede">Each row is one student in one week. Click any cell you don't trust, then say what kind of problem it is. Finding a problem earns 10 points; naming its type earns 10 more.</p>
+    </div>
+    <div class="meter">found <b id="found">0</b>/9 · false alarms <b id="fa">0</b></div>
+  </div>
+  <div class="sheet"><table aria-label="Survey excerpt">
+    <thead><tr><th class="rn">#</th><th>student_id</th><th>name</th><th>career</th><th>week</th><th>study_hours_week</th><th>grade_average</th><th>sleep_hours</th></tr></thead>
+    <tbody id="tbody"></tbody></table></div>
+  <div class="panel" id="panel" aria-live="polite">
+    <h3>Pick a cell</h3>
+    <p>Look at every column. Some problems are loud (a number that cannot exist). Some are quiet (the same thing written two ways, or a row you have already seen).</p>
+  </div>
+  <div class="decider">
+    <b>How to decide</b>
+    <ol>
+      <li>Is the column <b>numbers</b> or <b>words</b>?</li>
+      <li><b>Numbers:</b> does another unit or scale make the value sensible? Yes &rarr; measurement error. No &rarr; capture error.</li>
+      <li><b>Words:</b> does the same spelling repeat, and can you still tell which category it means? Yes &rarr; coding inconsistency. No &rarr; capture error.</li>
+      <li>Empty or a code for "no answer" &rarr; missing value. The whole row seen before &rarr; duplicate row.</li>
+    </ol>
+  </div>
+  <div class="legend">
+    <div><b>Missing value</b>Nothing was answered: a blank cell, or a code such as 999, ? or N/A.</div>
+    <div><b>Capture error</b>A slip while typing: a wrong digit or decimal point, text typed into a number column, or a one-off misspelling.</div>
+    <div><b>Measurement error</b>Typed correctly, wrong unit or scale: minutes instead of hours, 0&ndash;10 instead of 0&ndash;100.</div>
+    <div><b>Coding inconsistency</b>One category written in several forms (Economics / Econ / economics). Each form repeats and is still recognisable.</div>
+    <div><b>Duplicate row</b>The whole row appears twice: same person, same week, same values.</div>
+  </div>
+</section>
+
+<div class="badges" aria-label="Achievements">
+  <span class="badge" id="bg-eagle">Eagle eye · all 9 found</span>
+  <span class="badge" id="bg-clean">No false alarms</span>
+  <button class="restart" id="restart" type="button">Start again</button>
+</div>
+<p class="foot">Practice data: <span style="font-family:var(--mono)">study_habits_raw.xlsx</span>, a made-up survey of 38 students over 4 weeks built for this class. Nothing you do here is saved or graded.</p>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+const $=function(id){return document.getElementById(id)};
+let score=0;
+function addPts(n,msg){score+=n;$("score").textContent=score;if(msg)toast(msg)}
+let tt; function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(tt);tt=setTimeout(function(){t.classList.remove("show")},1600)}
+function badge(id){$(id).classList.add("on")}
+
+const cols=["student_id","name","career","week","study_hours_week","grade_average","sleep_hours"];
+const rows=[
+["A01122","Héctor","International Relations",1,18,88.4,6],
+["A01133","Elena","International Relations",1,1020,76.5,5.8],
+["A01102","Luis","Economics",1,12,8.58,6],
+["A01130","Marco","Law",1,"",81.3,7.3],
+["A01101","Ana","Government",1,8,79.5,6.4],
+["A01101","Ana","Government",1,8,79.5,6.4],
+["A01104","Diego","engineering",2,23,91.7,7.1],
+["A01126","Gael","International Relations",2,999,93.9,8.7],
+["A01123","Lucía","Economics",2,12,79.5,"8 hrs"],
+["A01106","Mateo","Econ",3,19,83.7,6.6],
+["A01121","Fernanda","International Relations",3,4,816,7.2],
+["A01134","Sebastián","Engineering",3,16,86.1,7]];
+const T={
+ M:{n:"Missing value", h:"Nothing was answered: a blank cell, or a code such as 999, ? or N/A that stands for \"no answer\"."},
+ C:{n:"Capture error", h:"A slip while typing. Number column: a digit or the decimal point is wrong, or text was typed into it. Words column: a one-off misspelling. The value is unusable as it is."},
+ ME:{n:"Measurement error", h:"Typed correctly, but in the wrong unit or scale. Change minutes to hours, or 0-10 to 0-100, and the value becomes sensible."},
+ CI:{n:"Coding inconsistency", h:"Words column only: one category written in several forms (Economics / Econ / economics). Each form repeats, and you can still tell which category it means."},
+ D:{n:"Duplicate row", h:"The whole row appears twice: same person, same week, same values."}};
+const HINT={
+ "ME|C":"The digits are fine here. Try another unit or scale and see whether the value becomes sensible.",
+ "ME|M":"There is a value in the cell, so nothing is missing. Ask whether the unit is right.",
+ "ME|CI":"Units and scales belong to numbers; coding inconsistency is about category words.",
+ "C|ME":"Try it: is there any unit or scale that makes this value correct? If not, a key slipped.",
+ "C|CI":"Coding inconsistency is about category labels in a words column. This is a number column.",
+ "C|M":"The cell is not empty and no code was used for \"no answer\" - look at how the value was typed.",
+ "CI|C":"A typing slip happens once. Check whether this spelling repeats in every row for this student, and whether you can still tell which category it means.",
+ "CI|ME":"Units and scales apply to numbers. This column holds words.",
+ "CI|M":"Nothing is missing here - the category is written, just not in the same form as the rest.",
+ "M|C":"Nobody mistyped this: the answer is absent, or a code was used to mean \"no answer\".",
+ "M|ME":"There is no number to convert here. The answer is simply not there.",
+ "M|CI":"Nothing is written in a different form - nothing is written at all."};
+const DECIDE="Two steps: (1) is this column <b>numbers</b> or <b>words</b>? (2) Numbers: does another unit or scale fix it? yes \u2192 measurement, no \u2192 capture. Words: does the same spelling repeat and still name the category? yes \u2192 coding inconsistency, no \u2192 capture.";
+const targets={
+ "1-4":{t:"ME",why:"1020 'hours' in a week that has 168. Try another unit: 1020 / 60 = 17 hours. It becomes sensible, so the typing was fine and the unit was wrong."},
+ "2-5":{t:"ME",why:"8.58 is impossible out of 100 and perfect out of 10: 8.58 x 10 = 85.8. A different scale fixes it, so it is a measurement error, not a typo."},
+ "3-4":{t:"M",why:"The cell is blank - nothing was answered. df.isnull().sum() counts this one."},
+ "5-*":{t:"D",why:"Row 6 is an exact copy of row 5: same student, same week, same numbers. The form was submitted twice. df.duplicated() finds it."},
+ "6-2":{t:"CI",why:"'engineering' in lower case. It repeats in every row for Diego and you can still tell the career, so it is one category written in two forms - not a typing slip. pandas counts it as a different career."},
+ "7-4":{t:"M",why:"999 was typed on purpose as the code for 'no answer'. It is a missing value in disguise, and isnull() does NOT count it."},
+ "8-6":{t:"C",why:"sleep_hours is a number column and 8 is already hours, so no unit change is needed - someone typed the unit into the cell. In a number column that is a capture error, and one text value turns the whole column into text."},
+ "9-2":{t:"CI",why:"'Econ' is a short form of 'Economics'. It repeats in all four of Mateo's rows - a typing slip does not repeat identically - and the category is still recognisable. A one-off misspelling such as 'Ecnomics' would be a capture error."},
+ "10-5":{t:"C",why:"816 is 81.6 with the decimal point missing. No unit or scale turns 816 into a valid grade, so a key slipped: a capture error."}};
+const state={}; let found=0, fa=0, typed=0;
+
+const tb=$("tbody");
+rows.forEach(function(r,ri){
+  const tr=document.createElement("tr");
+  const rn=document.createElement("td"); rn.className="rn"; rn.textContent=ri+1; tr.appendChild(rn);
+  r.forEach(function(v,ci){
+    const td=document.createElement("td");
+    const b=document.createElement("button");
+    b.type="button";
+    b.className="cell"+(typeof v==="number"||ci>=3?" num":"");
+    b.textContent=v===""?" ":String(v);
+    b.id="c-"+ri+"-"+ci;
+    b.setAttribute("aria-label",cols[ci]+" row "+(ri+1)+": "+(v===""?"empty":v));
+    b.addEventListener("click",function(){pick(ri,ci)});
+    td.appendChild(b); tr.appendChild(td);
+  });
+  tb.appendChild(tr);
+});
+function keyFor(ri,ci){if(targets[ri+"-"+ci])return ri+"-"+ci;if(targets[ri+"-*"])return ri+"-*";return null}
+function cellsOf(k){const p=k.split("-");const r=p[0],c=p[1];
+  return c==="*"?cols.map(function(_,ci){return $("c-"+r+"-"+ci)}):[$("c-"+r+"-"+c)]}
+function pick(ri,ci){
+  const k=keyFor(ri,ci), p=$("panel");
+  if(!k){
+    if(ri===4){p.innerHTML="<h3>Row 5 is fine on its own</h3><p>Every value here is plausible. But have you seen this exact row somewhere else?</p>";return}
+    fa++; $("fa").textContent=fa;
+    const b=$("c-"+ri+"-"+ci); b.classList.add("miss"); setTimeout(function(){b.classList.remove("miss")},600);
+    p.innerHTML="<h3>Nothing wrong here</h3><p>"+cols[ci]+" = "+(rows[ri][ci]===""?"(empty)":rows[ri][ci])+" is a plausible value. False alarms cost time in a real audit, but no points here.</p>";
+    return;
+  }
+  const s=state[k]||(state[k]={found:false,typed:false,tries:0});
+  if(!s.found){s.found=true;found++;$("found").textContent=found;cellsOf(k).forEach(function(b){b.classList.add("flag")});addPts(10,"+10 · problem found")}
+  if(s.typed){p.innerHTML="<h3>"+T[targets[k].t].n+"</h3><p>"+targets[k].why+"</p>";return}
+  p.innerHTML="<h3>What kind of problem is this?</h3><p class='decide'>"+DECIDE+"</p><div class='choices'>"+Object.keys(T).map(function(x){
+    return "<button type='button' class='opt' data-t='"+x+"'><b>"+T[x].n+"</b><span>"+T[x].h+"</span></button>"}).join("")+"</div><p id='why' class='why'></p>";
+  p.querySelectorAll(".opt").forEach(function(c){
+    c.addEventListener("click",function(){
+      if(s.typed)return; s.tries++;
+      if(c.dataset.t===targets[k].t){
+        c.classList.add("right"); s.typed=true; typed++;
+        if(s.tries===1)addPts(10,"+10 · right type");
+        cellsOf(k).forEach(function(b){b.classList.remove("flag");b.classList.add("solved")});
+        $("why").textContent=targets[k].why;
+        if(typed===9){badge("bg-eagle");if(fa===0){badge("bg-clean");addPts(20,"+20 · no false alarms")}}
+      } else {
+        c.classList.add("wrong");
+        $("why").textContent=HINT[targets[k].t+"|"+c.dataset.t]||"Not quite. Use the two steps: numbers or words, then unit and scale, or repeated spelling.";
+      }
+    });
+  });
+}
+$("restart").addEventListener("click",function(){location.reload()});
+})();
+</script>
+</body>
+</html>
